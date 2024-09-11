@@ -1,0 +1,27 @@
+.navbar {
+  display: flex;
+  justify-content: flex-end; 
+  background-color: #FF4500;
+  padding: 20px 20px;
+  margin-bottom: 10px;
+  position: fixed; 
+  top: 0; 
+  right: 0;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 10px; 
+  border-radius: 10px;
+}
+
+.navLink:hover {
+  background-color: #222831;
+}
+
+.navLink svg {
+  margin-right: 4px; 
+}

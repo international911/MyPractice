@@ -1,0 +1,13 @@
+{
+  "name": "my-practice3",
+  "version": "1.0.0",
+  "description": "My full-stack application",
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npm start",
+    "client": "cd my-app && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^6.5.1"
+  }
+}

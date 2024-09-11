@@ -1,0 +1,30 @@
+.vacancyList {
+  list-style-type: none;
+  padding: 0;
+}
+
+.vacancyItem {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.vacancyItem a {
+  text-decoration: none;
+  color: #3498db;
+}
+
+.vacancyItem a:hover {
+  text-decoration: underline;
+}
+
+.pagination {
+  margin-top: 20px;
+}
+
+.paginationButton {
+  padding: 10px;
+  margin-right: 5px;
+  font-size: 16px;
+}
