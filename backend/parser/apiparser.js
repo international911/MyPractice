@@ -14,50 +14,87 @@ const pool = mysql.createPool({
   insecureAuth: true
 });
 
-async function parseVacancies() {
+// Константы для настройки запроса
+const API_URL = 'https://api.hh.ru/vacancies';
+const SEARCH_PARAMS = {
+  area: 113, // Россия
+  per_page: 100,
+  text: 'программист OR разработчик OR программирование OR IT OR информационные технологии'
+};
+
+/**
+ * Получает вакансии с API hh.ru.
+ * @returns {Promise<Array>} Массив вакансий.
+ */
+async function fetchVacancies() {
   try {
-    // Делаем запрос к API hh.ru
-    const response = await axios.get('https://api.hh.ru/vacancies', {
-      params: {
-        area: 113, // Россия
-        per_page: 100,
-        text: 'программист OR разработчик OR программирование OR IT OR информационные технологии'
-      }
-    });
+    const response = await axios.get(API_URL, { params: SEARCH_PARAMS });
+    return response.data.items;
+  } catch (error) {
+    console.error('Ошибка при получении вакансий:', error);
+    throw error;
+  }
+}
 
-    // Получаем массив вакансий из ответа API
-    const vacancies = response.data.items;
+/**
+ * Преобразует данные вакансий в формат, подходящий для вставки в базу данных.
+ * @param {Array} vacancies Массив вакансий.
+ * @returns {Array} Массив значений для SQL-запроса.
+ */
+function mapVacanciesToValues(vacancies) {
+  return vacancies.map(vacancy => [
+    vacancy.name,
+    vacancy.alternate_url,
+    getSalaryValue(vacancy.salary, 'from'),
+    getSalaryValue(vacancy.salary, 'to'),
+    vacancy.salary ? vacancy.salary.currency : null,
+    vacancy.employer.name,
+    vacancy.area.name,
+    vacancy.employment ? vacancy.employment.name : null,
+    'IT-профессии'
+  ]);
+}
 
-    // Формируем SQL-запрос для вставки вакансий в базу данных
-    const query = 'INSERT INTO vacancies (title, url, salary_from, salary_to, currency, company_name, area_name, employment_type, profession_name) VALUES ?';
+/**
+ * Возвращает значение зарплаты или null, если его нет.
+ * @param {Object} salary Объект с информацией о зарплате.
+ * @param {string} key Ключ для извлечения значения ('from' или 'to').
+ * @returns {number|null} Значение зарплаты или null.
+ */
+function getSalaryValue(salary, key) {
+  return salary ? salary[key] : null;
+}
 
-    // Создаем массив значений для SQL-запроса
-    const values = vacancies.map((vacancy) => {
-      return [
-        vacancy.name,
-        vacancy.alternate_url,
-        vacancy.salary ? vacancy.salary.from : null,
-        vacancy.salary ? vacancy.salary.to : null,
-        vacancy.salary ? vacancy.salary.currency : null,
-        vacancy.employer.name,
-        vacancy.area.name,
-        vacancy.employment ? vacancy.employment.name : null,
-        'IT-профессии'
-      ];
-    });
-
-    // Получаем подключение из пула
-    const connection = await pool.getConnection();
-
-    // Выполняем SQL-запрос для вставки вакансий в базу данных
+/**
+ * Вставляет вакансии в базу данных.
+ * @param {Array} values Массив значений для SQL-запроса.
+ */
+async function insertVacanciesIntoDatabase(values) {
+  const query = `
+    INSERT INTO vacancies (
+      title, url, salary_from, salary_to, currency,
+      company_name, area_name, employment_type, profession_name
+    ) VALUES ?
+  `;
+  const connection = await pool.getConnection();
+  try {
     const result = await connection.query(query, [values]);
     console.log(`Inserted ${result[0].affectedRows} vacancies into MySQL database`);
-
-    // Освобождаем подключение
+  } finally {
     connection.release();
+  }
+}
 
+/**
+ * Основная функция для парсинга вакансий.
+ */
+async function parseVacancies() {
+  try {
+    const vacancies = await fetchVacancies();
+    const values = mapVacanciesToValues(vacancies);
+    await insertVacanciesIntoDatabase(values);
   } catch (error) {
-    console.error(error);
+    console.error('Ошибка при парсинге вакансий:', error);
     throw error;
   }
 }
